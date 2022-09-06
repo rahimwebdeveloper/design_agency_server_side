@@ -58,6 +58,28 @@ async function run() {
             res.send(order);
         })
 
+
+        app.get('/orders', async (req, res) => {
+            const orders = await ordersCollations.find().toArray()
+
+            res.send(orders);
+        })
+
+        app.put('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const position = req.query ;
+            console.log(position);
+            const updateDoc = {
+                $set: position ,
+            }
+            const filter = { _id: ObjectId(id)};
+            const options = { upsert: true}
+            const result = await ordersCollations.updateOne(filter, updateDoc, options )
+            
+            console.log(result)
+        })
+
+
         // app.get('/order/:id', async (req, res) => {
         //     const id = req.params.id;
         //     const query = { _id: ObjectId(id) }
