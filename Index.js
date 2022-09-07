@@ -5,6 +5,8 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
+const stripe = require("stripe")(process.env.STIPE_SECRET_KEY);
+
 
 //mid deal ware 
 app.use(cors());
@@ -23,6 +25,8 @@ async function run() {
         await client.connect();
         const servicesCollations = client.db("design_agency").collection("services");
         const ordersCollations = client.db("design_agency").collection("orders");
+        const usersCollations = client.db("design_agency").collection("users");
+        const paymentCollations = client.db("design_agency").collection("payment");
 
         // service get api 
         app.get('/service', async (req, res) => {
@@ -59,34 +63,67 @@ async function run() {
         })
 
 
+        // get all order data for admin 
         app.get('/orders', async (req, res) => {
             const orders = await ordersCollations.find().toArray()
-
             res.send(orders);
         })
 
+        // admin change state with order place
         app.put('/order/:id', async (req, res) => {
             const id = req.params.id;
-            const position = req.query ;
+            const position = req.query;
             console.log(position);
             const updateDoc = {
-                $set: position ,
+                $set: position,
             }
-            const filter = { _id: ObjectId(id)};
-            const options = { upsert: true}
-            const result = await ordersCollations.updateOne(filter, updateDoc, options )
-            
-            console.log(result)
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true }
+            const result = await ordersCollations.updateOne(filter, updateDoc, options)
+
         })
 
 
-        // app.get('/order/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: ObjectId(id) }
-        //     const result = await ordersCollations.findOne(query)
-        //     res.send(result);
+        // get on item for pat bayer 
+        app.get('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await ordersCollations.findOne(query)
+            res.send(result)
 
-        // })
+        })
+
+        app.patch('/order/:id', async (req, res) => {
+            const id = req.params.id ;
+            const payment = req.body ;
+            const filter = {_id: ObjectId(id)};
+            const updateDoc = {
+                $set: {
+                    pay: true ,
+                    transactionId : payment.transactionId,
+                },
+            }
+            const result = await paymentCollations.insertOne(payment);
+            const updatingOrder = await ordersCollations.updateOne(filter, updateDoc);
+            res.send(updatingOrder);
+        })
+
+
+        app.post('/create_payment_intent', async (req, res) => {
+            const service = req.body;
+            const price = service.price;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
 
 
 
