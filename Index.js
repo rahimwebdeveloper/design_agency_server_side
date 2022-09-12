@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
@@ -73,7 +73,6 @@ async function run() {
         app.put('/order/:id', async (req, res) => {
             const id = req.params.id;
             const position = req.query;
-            console.log(position);
             const updateDoc = {
                 $set: position,
             }
@@ -82,6 +81,8 @@ async function run() {
             const result = await ordersCollations.updateOne(filter, updateDoc, options)
 
         })
+
+
 
 
         // get on item for pat bayer 
@@ -94,18 +95,37 @@ async function run() {
         })
 
         app.patch('/order/:id', async (req, res) => {
-            const id = req.params.id ;
-            const payment = req.body ;
-            const filter = {_id: ObjectId(id)};
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = { _id: ObjectId(id) };
             const updateDoc = {
                 $set: {
-                    pay: true ,
-                    transactionId : payment.transactionId,
+                    pay: true,
+                    transactionId: payment.transactionId,
                 },
             }
             const result = await paymentCollations.insertOne(payment);
             const updatingOrder = await ordersCollations.updateOne(filter, updateDoc);
             res.send(updatingOrder);
+        });
+
+
+        app.post('/user', async (req, res) => {
+            const user = req.body;
+            const email = user.email;
+            const options = { upsert: true }
+            const updateDoc = {
+                email: email,
+                role: 'admin'
+            };
+            const result = await usersCollations.updateOne(updateDoc, options);
+            res.send(result);
+        });
+
+
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
         })
 
 
@@ -141,6 +161,6 @@ app.get('/', (req, res) => {
     res.send('Hello World')
 })
 
-app.listen(port, () => {
-    console.log(`listening Port ${port}`)
+app.listen(PORT, () => {
+    console.log(`listening Port ${PORT}`)
 })
